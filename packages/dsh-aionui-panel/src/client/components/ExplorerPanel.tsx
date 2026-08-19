@@ -11,13 +11,14 @@
  * @module dsh-aionui-panel/client/components/ExplorerPanel
  */
 
-import { memo, useCallback, useRef, useState } from 'react'
-import type { DragEvent, JSX, MouseEvent as ReactMouseEvent } from 'react'
+import { Component, memo, useCallback, useRef, useState, useSyncExternalStore } from 'react'
+import type { DragEvent, ErrorInfo, JSX, KeyboardEvent, MouseEvent as ReactMouseEvent, ReactNode } from 'react'
 import type { FsEntry } from '../../core/types.ts'
 import { parentRel } from '../fileType.ts'
 import { t } from '../locales.ts'
 import { useStore } from '../hooks/useStore.ts'
 import type { PanelStores } from '../store.ts'
+import { orderedExplorerTabs, type AionUiPanelServiceFace } from '../dock-service.ts'
 import { FileTypeIcon } from './FileIcon.tsx'
 import { ChevronRightIcon, CloseIcon, ExpandRightIcon, MaximizeIcon, RestoreIcon, SearchIcon } from './icons.tsx'
 import { ConfirmDialog, ContextMenu, PromptDialog, toast, type MenuEntry, type MenuState } from './overlay.tsx'
@@ -30,6 +31,23 @@ import '../styles/tokens.module.css'
 /** Row indent step per tree depth (px). */
 const INDENT_STEP = 16
 
+class DockTabErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false }
+
+  static getDerivedStateFromError(): { failed: boolean } {
+    return { failed: true }
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo): void {
+    console.error('[dsh-aionui-panel] dock tab render failed:', error, info)
+  }
+
+  render(): ReactNode {
+    if (this.state.failed) return <div className={explorerCss.searchStatus} role="status">{t('explorer.tabs.unavailable')}</div>
+    return this.props.children
+  }
+}
+
 /**
  * The whole explorer column content.
  * @param stores - the panel store bundle.
@@ -37,12 +55,33 @@ const INDENT_STEP = 16
  */
 export function ExplorerPanel({
   stores,
+  dockService,
   onToggleCollapse,
 }: {
   stores: PanelStores
+  dockService: AionUiPanelServiceFace
   onToggleCollapse: () => void
 }): JSX.Element {
   const state = useStore(stores.explorer)
+  const dockTabs = useSyncExternalStore(dockService.subscribeDockTabs, dockService.getDockTabs, dockService.getDockTabs).tabs
+  const tabItems = orderedExplorerTabs(dockTabs, {
+    files: t('explorer.tabs.files'),
+    changes: t('explorer.tabs.changes'),
+  })
+  const onTabKeyDown = useCallback((event: KeyboardEvent<HTMLButtonElement>): void => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
+    const buttons = Array.from(event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="tab"]') ?? [])
+    const current = buttons.indexOf(event.currentTarget)
+    if (current < 0 || buttons.length === 0) return
+    const next = event.key === 'Home'
+      ? 0
+      : event.key === 'End'
+        ? buttons.length - 1
+        : (current + (event.key === 'ArrowRight' ? 1 : -1) + buttons.length) % buttons.length
+    event.preventDefault()
+    buttons[next]?.focus()
+    buttons[next]?.click()
+  }, [])
   const layoutState = useStore(stores.layout)
   const maximizedExplorer = layoutState.maximized === 'explorer'
   const [searchFocus, setSearchFocus] = useState(false)
@@ -161,22 +200,25 @@ export function ExplorerPanel({
 
   return (
     <div className="aionui-root" style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
-      {/* The Files/Changes tab bar. */}
       <div className={explorerCss.tabBar}>
-        <button
-          type="button"
-          className={state.activeTab === 'files' ? explorerCss.tabBtnActive : explorerCss.tabBtn}
-          onClick={() => stores.explorer.setActiveTab('files')}
-        >
-          {t('explorer.tabs.files')}
-        </button>
-        <button
-          type="button"
-          className={state.activeTab === 'changes' ? explorerCss.tabBtnActive : explorerCss.tabBtn}
-          onClick={() => stores.explorer.setActiveTab('changes')}
-        >
-          {t('explorer.tabs.changes')}
-        </button>
+        <div className={explorerCss.tabList} role="tablist" aria-label={t('explorer.tabs.list')}>
+          {tabItems.map((tab) => (
+            <button
+              key={tab.id}
+              id={`explorer-tab-${tab.id}`}
+              type="button"
+              role="tab"
+              aria-selected={state.activeTab === tab.id}
+              aria-controls={`explorer-tabpanel-${tab.id}`}
+              tabIndex={state.activeTab === tab.id ? 0 : -1}
+              className={state.activeTab === tab.id ? explorerCss.tabBtnActive : explorerCss.tabBtn}
+              onClick={() => stores.explorer.setActiveTab(tab.id)}
+              onKeyDown={onTabKeyDown}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
         {/* Maximize/restore (issue #315): transient — the layout controller
             owns the grid takeover, Esc and the restore path. */}
         <button
@@ -203,7 +245,12 @@ export function ExplorerPanel({
       </div>
 
       {/* Files tab: search + tree (kept mounted; hidden when changes is active). */}
-      <div style={{ display: state.activeTab === 'files' ? 'flex' : 'none', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+      <div
+        id="explorer-tabpanel-files"
+        role="tabpanel"
+        aria-labelledby="explorer-tab-files"
+        style={{ display: state.activeTab === 'files' ? 'flex' : 'none', flexDirection: 'column', flex: 1, minHeight: 0 }}
+      >
         <SearchArea
           stores={stores}
           searchFocus={searchFocus}
@@ -213,7 +260,36 @@ export function ExplorerPanel({
       </div>
 
       {/* Changes tab: SCM (mounted on demand; its store outlives the tab). */}
-      {state.activeTab === 'changes' && <ScmPanel stores={stores} />}
+      {state.activeTab === 'changes' && (
+        <div
+          id="explorer-tabpanel-changes"
+          role="tabpanel"
+          aria-labelledby="explorer-tab-changes"
+          style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}
+        >
+          <ScmPanel stores={stores} />
+        </div>
+      )}
+      {state.activeTab !== 'files' && state.activeTab !== 'changes' && (() => {
+        const tab = dockTabs.find((item) => item.id === state.activeTab)
+        return tab === undefined ? (
+          <div className={explorerCss.searchStatus} role="status">{t('explorer.tabs.unavailable')}</div>
+        ) : (
+          // Extension tab panel: flex:1 + min-height:0 so it takes the space
+          // under the tab bar, and overflow:auto so tall extension content
+          // scrolls inside the panel instead of stretching the column.
+          <div
+            id={`explorer-tabpanel-${tab.id}`}
+            role="tabpanel"
+            aria-labelledby={`explorer-tab-${tab.id}`}
+            style={{ flex: 1, minHeight: 0, overflow: 'auto' }}
+          >
+            <DockTabErrorBoundary key={`${tab.id}:${dockTabs.length}`}>
+              {tab.render()}
+            </DockTabErrorBoundary>
+          </div>
+        )
+      })()}
 
       {/* Right-click menu + dialogs (portaled). */}
       <ContextMenu state={menu} onClose={() => setMenu(null)} />

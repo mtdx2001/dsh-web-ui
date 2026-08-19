@@ -105,7 +105,7 @@ describe('sftp', () => {
       writeFileSync(join(dir, 'a', 'one.txt'), 'x', 'utf8')
       writeFileSync(join(dir, 'a', 'b', 'two.txt'), 'x', 'utf8')
       const files = walkLocalDir(dir).sort()
-      expect(files).toEqual(['a/b/two.txt', 'a/one.txt', 'root.txt'])
+      expect(files).toEqual([join('a', 'b', 'two.txt'), join('a', 'one.txt'), 'root.txt'])
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }

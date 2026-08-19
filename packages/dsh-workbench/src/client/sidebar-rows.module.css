@@ -1,0 +1,60 @@
+.stack {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.row {
+  display: grid;
+  min-width: 0;
+}
+
+.trigger {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  min-height: 32px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 6px;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.trigger:hover,
+.trigger:focus-visible,
+.row[data-expanded='true'] > .trigger {
+  background: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+.trigger:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
+}
+
+.label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compactMarker {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  flex: 0 0 20px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.details {
+  min-width: 0;
+  max-height: min(320px, 40vh);
+  overflow: auto;
+  padding: 4px 8px 8px;
+}

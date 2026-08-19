@@ -81,6 +81,7 @@ const MANIFEST = [
       'packages/dsh-community-plugins/src/mount-once.ts',
       'packages/dsh-web-ui-settings/src/mount-once.ts',
       'packages/dsh-tool-describe-image/src/mount-once.ts',
+      'packages/dsh-workbench/src/mount-once.ts',
       'packages/skins/skin-center/src/mount-once.ts',
     ],
   },

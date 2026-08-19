@@ -26,7 +26,7 @@ dsh plugin --profile web add link:$(pwd)/packages/dsh-aionui-panel
 
 项目会话（当前会话有工作目录）打开后，聊天区右侧出现两块面板：
 
-- **Explorer（最右栏，默认 260px，范围 220~500px）**：`文件 / 变更` 双 tab；文件树整行点击展开/收起文件夹，点击文件在预览面板打开，顶部按文件名搜索（150ms 防抖，点击结果 = 定位到树中，不打断思路）；`变更` tab 读取真实 git 状态，支持 stage / unstage / discard（untracked 走删除，tracked 走 restore，批量放弃有确认）。
+- **Explorer（最右栏，默认 260px，范围 220~500px）**：内置 `文件 / 变更` tab，并支持其他 bundle 以失败隔离方式注册 tab；文件树整行点击展开/收起文件夹，点击文件在预览面板打开，顶部按文件名搜索（150ms 防抖，点击结果 = 定位到树中，不打断思路）；`变更` tab 读取真实 git 状态，支持 stage / unstage / discard（untracked 走删除，tracked 走 restore，批量放弃有确认）。
 - **文件树右键菜单**：右键文件/文件夹弹出菜单——复制路径、复制名称、在文件管理器中显示、用默认应用打开（仅文件）、重命名、新建文件、新建文件夹、删除（二次确认）；全部走工作区门禁（loopback 围栏 + 拒绝 .git 路径），「在文件管理器中显示」Windows 用 `explorer /select`、macOS 用 `open -R`、Linux 桌面回退打开父目录。
 - **拖拽文件到输入框**：文件树中的文件行可拖拽（目录行除外），拖到聊天输入框区域松手即把相对路径（如 `deploy/base/deployment.yaml`）插入当前会话草稿的光标处，agent 收到消息后会自行读取该文件，无需手动输入路径；拖拽过程中输入框上方显示高亮提示条。
 - **Preview（右二栏，默认 480px，范围 340~1200px）**：多 tab 预览，支持 markdown / html / code / diff / csv / pdf / word / excel / ppt / 图片 / 文本 / url（code 预览经由官方 shiki core 语法高亮）；源码/预览切换、分屏编辑（比例持久化）、保存（mtime 冲突检测）、下载、刷新（4 态：不渲染死按钮）、dirty 点、中键关闭、右键菜单批量关闭（dirty 确认）、tab 溢出渐变指示器。
@@ -35,7 +35,7 @@ dsh plugin --profile web add link:$(pwd)/packages/dsh-aionui-panel
 交互细节：
 
 - 拖拽左缘把手调宽（rAF 每帧合并，body user-select:none）；双击把手复位默认宽度。
-- 两级宽度钳位（Explorer 先、Preview 后）数学保证聊天区 >= 360px；超限值回写持久化。
+- 两级宽度钳位（Explorer 先、Preview 后）数学保证聊天区 >= 480px；超限值回写持久化。
 - 折叠 = 宽度缩 0 且组件保持挂载（树展开态 / 预览 tab 不丢），无过渡动画；折叠后右侧出现浮动展开按钮。
 - 明暗双主题跟随 GUI（`body[data-ds-dark-theme]`），prefers-reduced-motion 全局禁用动画。
 - 偏好按项目隔离持久化（localStorage keys 与 AionUi 一致）：`chat-workspace-width-px` / `chat-preview-width-px` / `preview-panel-split-ratio` / `project-panel-collapse:<root>` / `explorer-ui:<root>` / `scm-ui:<root>` / `preview-ui:<root>`（LRU 上限 12 scope）。读取一律范围校验，非法值回退默认。

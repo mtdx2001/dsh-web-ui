@@ -8,6 +8,8 @@
 const zh = {
   'explorer.tabs.files': '文件',
   'explorer.tabs.changes': '变更',
+  'explorer.tabs.unavailable': '此面板暂不可用',
+  'explorer.tabs.list': '文件面板标签',
   'explorer.search.placeholder': '按文件名搜索',
   'explorer.search.searching': '搜索中…',
   'explorer.search.empty': '没有匹配的文件',
@@ -95,6 +97,8 @@ const zh = {
 const en: Record<keyof typeof zh, string> = {
   'explorer.tabs.files': 'Files',
   'explorer.tabs.changes': 'Changes',
+  'explorer.tabs.unavailable': 'This panel is unavailable',
+  'explorer.tabs.list': 'Files panel tabs',
   'explorer.search.placeholder': 'Search file names',
   'explorer.search.searching': 'Searching…',
   'explorer.search.empty': 'No matching files',

@@ -1,0 +1,9 @@
+# Retry explicit upstream gateway failures after the official provider policy
+# delegates. This host-only row does not modify the DSH runtime or Web shell.
+- insert:
+    - id: gateway-retry
+      name: '@linxin666/dsh-gateway-retry'
+      config:
+        initialDelayMs: 5000
+        maxDelayMs: 120000
+        jitterRatio: 0.1

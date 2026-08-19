@@ -13,6 +13,7 @@ import ToolRuntime from '@deepseek-ai/dsh-tools'
 
 import * as tool from '../src/index.ts'
 import { registerAttachmentRef } from '../src/attach-routes.ts'
+import { buildVisionRequest } from '../src/vision-client.ts'
 import { chatReply, FakeWebServer, jsonReply, PNG_BYTES, rawReply, responsesReply, sentContent, sentInputContent, startMockServer } from './mock-server.ts'
 
 /** In-memory attachment store so the attachment-reference input path is observable. */
@@ -143,6 +144,7 @@ afterEach(async () => {
   else process.env.VISION_API_KEY = env
   savedEnv.clear()
   await Promise.all(contexts.splice(0).map(ctx => Promise.resolve(ctx.fiber.dispose())))
+  await new Promise<void>(resolve => setImmediate(resolve))
   await Promise.all(cleanup.splice(0).map(close => close()))
 })
 
@@ -216,29 +218,16 @@ describe('successful descriptions', () => {
     expect(textPart?.text).toBe('Is there text in this image?')
   })
 
-  it('strips the model thinking suffix and maps it to thinking.type', async () => {
-    const server = await startMockServer((_request, res) => { jsonReply(res, 200, chatReply('ok')) })
-    cleanup.push(server.close)
-    const path = await tempPng()
+  it('strips the model thinking suffix and maps it to thinking.type', () => {
+    const image = { bytes: PNG_BYTES, mimeType: 'image/png' as const }
+    const bodyFor = (model: string) => JSON.parse(buildVisionRequest(
+      tool.resolveConfig({ ...BASE_CONFIG, model }), tool.DEFAULT_PROMPT, image,
+    ).body) as { model?: unknown; thinking?: unknown }
 
-    const inheritCtx = await setup({ baseURL: server.url })
-    const inheritResult = await callDescribe(inheritCtx, { image: path })
-    expect(inheritResult.isError).toBe(false)
-    expect((server.request(0).body as { model?: unknown; thinking?: unknown }).model).toBe('vision-1')
-    expect((server.request(0).body as { thinking?: unknown }).thinking).toBeUndefined()
-
-    const offCtx = await setup({ baseURL: server.url, model: 'vision-1:off' })
-    const offResult = await callDescribe(offCtx, { image: path })
-    expect(offResult.isError).toBe(false)
-    expect((server.request(1).body as { model?: unknown; thinking?: unknown }).model).toBe('vision-1')
-    expect((server.request(1).body as { thinking?: unknown }).thinking).toEqual({ type: 'disabled' })
-
-    const highCtx = await setup({ baseURL: server.url, model: 'vision-1:high' })
-    const highResult = await callDescribe(highCtx, { image: path })
-    expect(highResult.isError).toBe(false)
-    if (!highResult.isError) expect(highResult.value).toMatchObject({ model: 'vision-1' })
-    expect((server.request(2).body as { model?: unknown; thinking?: unknown }).model).toBe('vision-1')
-    expect((server.request(2).body as { thinking?: unknown }).thinking).toEqual({ type: 'enabled' })
+    expect(bodyFor('vision-1')).toMatchObject({ model: 'vision-1' })
+    expect(bodyFor('vision-1').thinking).toBeUndefined()
+    expect(bodyFor('vision-1:off')).toMatchObject({ model: 'vision-1', thinking: { type: 'disabled' } })
+    expect(bodyFor('vision-1:high')).toMatchObject({ model: 'vision-1', thinking: { type: 'enabled' } })
   })
 
   it('downloads an http(s) image when given a URL', async () => {
@@ -297,22 +286,16 @@ describe('Responses API style', () => {
     expect(textPart?.text).toBe('Is there text in this image?')
   })
 
-  it('maps the model thinking suffix to reasoning.effort in the responses body', async () => {
-    const server = await startMockServer((_request, res) => { jsonReply(res, 200, responsesReply('ok')) })
-    cleanup.push(server.close)
-    const path = await tempPng()
+  it('maps the model thinking suffix to reasoning.effort in the responses body', () => {
+    const image = { bytes: PNG_BYTES, mimeType: 'image/png' as const }
+    const bodyFor = (model: string) => JSON.parse(buildVisionRequest(
+      tool.resolveConfig({ ...BASE_CONFIG, apiStyle: 'responses', model }), tool.DEFAULT_PROMPT, image,
+    ).body) as { model?: unknown; reasoning?: unknown }
 
-    const inheritCtx = await setup({ baseURL: server.url, apiStyle: 'responses' })
-    await callDescribe(inheritCtx, { image: path })
-    expect((server.request(0).body as { reasoning?: unknown }).reasoning).toBeUndefined()
-
-    const offCtx = await setup({ baseURL: server.url, apiStyle: 'responses', model: 'vision-1:off' })
-    await callDescribe(offCtx, { image: path })
-    expect((server.request(1).body as { reasoning?: unknown }).reasoning).toEqual({ effort: 'none' })
-
-    const highCtx = await setup({ baseURL: server.url, apiStyle: 'responses', model: 'vision-1:high' })
-    await callDescribe(highCtx, { image: path })
-    expect((server.request(2).body as { reasoning?: unknown }).reasoning).toEqual({ effort: 'high' })
+    expect(bodyFor('vision-1')).toMatchObject({ model: 'vision-1' })
+    expect(bodyFor('vision-1').reasoning).toBeUndefined()
+    expect(bodyFor('vision-1:off')).toMatchObject({ model: 'vision-1', reasoning: { effort: 'none' } })
+    expect(bodyFor('vision-1:high')).toMatchObject({ model: 'vision-1', reasoning: { effort: 'high' } })
   })
 
   it('joins every output_text part of the first assistant message', async () => {

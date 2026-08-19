@@ -25,6 +25,7 @@ import { mountBoard } from './board-mount.tsx'
 import { mountSidebarEntry } from './sidebar-entry.ts'
 import { TaskBoardSettingsCard, TaskBoardSettingsCardController, type TaskBoardSettings } from './TaskBoardSettingsCard.tsx'
 import { en, zh, type TaskBoardKey } from './locales.ts'
+import { registerTaskBoardWorkbenchRow, type WorkbenchSidebarRowService } from './workbench-row.tsx'
 
 /** Locale namespace this plugin owns. */
 const NS = 'task-board'
@@ -106,6 +107,28 @@ export function apply(ctx: ClientContext): void {
     }
   })
 
+  // Bind the optional Workbench service independently of UI mount order. The
+  // injected fiber re-runs when the service appears or unloads; the row always
+  // follows the currently mounted controller and never retains a disposed one.
+  let workbenchService: WorkbenchSidebarRowService | undefined
+  let rowController: BoardController | undefined
+  let disposeWorkbenchRow: (() => void) | undefined
+  const syncWorkbenchRow = (): void => {
+    disposeWorkbenchRow?.()
+    disposeWorkbenchRow = undefined
+    if (workbenchService !== undefined && rowController !== undefined) {
+      disposeWorkbenchRow = registerTaskBoardWorkbenchRow(workbenchService, rowController)
+    }
+  }
+  ctx.inject(['workbench'], (scope) => {
+    workbenchService = scope.get('workbench') as WorkbenchSidebarRowService
+    syncWorkbenchRow()
+    return () => {
+      workbenchService = undefined
+      syncWorkbenchRow()
+    }
+  })
+
   // The sidebar entry and board view mount once the settings scope settles;
   // while the scope is still loading, the composition default is unknown, so
   // nothing mounts yet. Only an unavailable scope (no settings surface served)
@@ -177,6 +200,8 @@ export function apply(ctx: ClientContext): void {
       },
     })
     controller.start()
+    rowController = controller
+    syncWorkbenchRow()
 
     // Scheduled runs: a browser-side heartbeat that triggers due tasks through
     // the same run path as the manual Run button. The first tick is gated on
@@ -247,6 +272,8 @@ export function apply(ctx: ClientContext): void {
     }
 
     uiDisposer = () => {
+      rowController = undefined
+      syncWorkbenchRow()
       for (const dispose of disposers.splice(0)) dispose()
       scheduler.dispose()
       controller.dispose()

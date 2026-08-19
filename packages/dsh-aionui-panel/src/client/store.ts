@@ -5,8 +5,9 @@
  * pure; async work — fetches, persistence — runs in the action layer).
  *
  * AionUi's right-panel architecture (Apache-2.0, re-implemented): the width
- * clamps below are the exact ordered pair that keeps the chat area >= 360px
- * at all times (see the research report's section 4.2).
+ * clamps below are the exact ordered pair that keeps the chat area >= 480px
+ * at all times. NOTE: 480px is a deliberate LOCAL deviation — upstream
+ * AionUi floors the chat area at 360px; this fork raises it for readability.
  * @module dsh-aionui-panel/client/store
  */
 
@@ -51,8 +52,9 @@ export function createState<S>(initial: S): StateHandle<S> {
 
 // ─── layout: constants, clamps, store ───────────────────────────────────────
 
-/** Chat-area floor the two clamps guarantee (never below this). */
-export const MIN_CHAT_PANEL_PX = 360
+/** Chat-area floor the two clamps guarantee (never below this). 480px is a
+ *  local deviation from upstream AionUi's 360px floor, chosen on purpose. */
+export const MIN_CHAT_PANEL_PX = 480
 /** Preview region width contract. */
 export const MIN_PREVIEW_PANEL_PX = 340
 export const DEFAULT_PREVIEW_REGION_PX = 480
@@ -69,6 +71,8 @@ export const KEY_EXPLORER_WIDTH = 'chat-workspace-width-px'
 export const KEY_PREVIEW_WIDTH = 'chat-preview-width-px'
 export const KEY_COLLAPSE = 'project-panel-collapse:'
 export const KEY_EXPLORER_UI = 'explorer-ui:'
+/** Active Explorer tab per project root. */
+export const KEY_EXPLORER_TAB = 'explorer-tab:'
 /** Trailing window for coalescing explorer fs-event refetches (ms). */
 export const FS_COALESCE_MS = 200
 export const KEY_SCM_UI = 'scm-ui:'
@@ -88,7 +92,7 @@ export function clampExplorerWidth(requested: number, available: number, preview
 /**
  * Preview clamp (runs after the explorer clamp): reserve chat's floor plus
  * the already-clamped explorer width plus the region chrome. The ordered pair
- * guarantees chat = available - explorer - preview >= 360.
+ * guarantees chat = available - explorer - preview >= 480.
  */
 export function clampPreviewWidth(requested: number, available: number, explorerWidth: number): number {
   const maxByContainer = Math.max(
@@ -208,8 +212,8 @@ export interface ExplorerState {
   selected: string | null
   /** Dirs currently fetching. */
   loading: string[]
-  /** Active tab: files | changes. */
-  activeTab: 'files' | 'changes'
+  /** Active built-in or registered extension tab id. */
+  activeTab: string
   /** Filename search state. */
   search: {
     query: string
@@ -224,7 +228,7 @@ export interface ExplorerState {
 /** The explorer store with its async actions. */
 export interface ExplorerStore extends StateHandle<ExplorerState> {
   setRoot: (root: string) => void
-  setActiveTab: (tab: 'files' | 'changes') => void
+  setActiveTab: (tab: string) => void
   toggleDir: (rel: string) => void
   select: (rel: string | null) => void
   reveal: (rel: string) => void
@@ -247,6 +251,15 @@ export interface ExplorerStore extends StateHandle<ExplorerState> {
 }
 
 /** Read the persisted explorer UI state for a root (range-guarded). */
+export function readExplorerTab(root: string): string {
+  const stored = readJson<unknown>(`${KEY_EXPLORER_TAB}${root}`, 'files')
+  return typeof stored === 'string' && /^[a-z][a-z0-9-]*$/.test(stored) ? stored : 'files'
+}
+
+export function writeExplorerTab(root: string, tab: string): void {
+  if (root !== '' && /^[a-z][a-z0-9-]*$/.test(tab)) writeJson(`${KEY_EXPLORER_TAB}${root}`, tab)
+}
+
 export function readExplorerUi(root: string): { expanded: string[]; selected: string | null } {
   const stored = readJson<{ expanded?: unknown; selected?: unknown }>(`${KEY_EXPLORER_UI}${root}`, {})
   const expanded = Array.isArray(stored.expanded)
@@ -383,6 +396,7 @@ export function createExplorerStore(api: PanelApi): ExplorerStore {
           ...prev,
           root,
           dirs: {},
+          activeTab: readExplorerTab(root),
           expanded: ui.expanded,
           selected: ui.selected,
           loading: [],
@@ -391,8 +405,11 @@ export function createExplorerStore(api: PanelApi): ExplorerStore {
       })
       void ensureDir(root, '')
     },
-    setActiveTab(tab: 'files' | 'changes') {
+    setActiveTab(tab: string) {
+      if (!/^[a-z][a-z0-9-]*$/.test(tab)) return
+      const root = handle.getSnapshot().root
       handle.update((prev) => (prev.activeTab === tab ? prev : { ...prev, activeTab: tab }))
+      writeExplorerTab(root, tab)
     },
     toggleDir(rel: string) {
       const state = handle.getSnapshot()

@@ -1,52 +1,20 @@
 # dsh-web-ui 插件包发布准备（内测已结束）
 
-> **快照说明（重要）**：本文档是**当前时点（2026-08-13）**的发布前检查快照。
-> 插件全家桶已结束内测，但**清单与版本仍可能调整**：包可能增删、版本可能调整、
-> 字段可能变动。本文档需随仓库变更**重新核对**，不得当作永久事实使用。
+> **检查说明（重要）**：插件清单、版本和发布属性以仓库源码及机械门禁为准。
+> 包可能增删、版本可能调整；发布前必须重新执行本文列出的检查，不得依赖历史快照。
 >
 > **红线（务必遵守）**：发布动作仍须先经仓库维护者明确批准，并按 registry 规范
 > 操作（`npm pack --dry-run` 级别的演练可先行）。
 
 ## 一、范围
 
-`packages/` 与 `packages/skins/` 下共 23 个插件包（截至快照日）：
+发布根由`scripts/verify-version.mjs`机械扫描`packages/*/package.json`与`packages/skins/*/package.json`，不在本文手抄包清单。当前共28个发布根，均为`0.1.19`且没有`private: true`；脚本会在tag发布前再次强制校验版本和公开发布属性。
 
-| 目录 | 包名 | 当前版本 | private |
-| --- | --- | --- | --- |
-| packages/dsh-task-board | @linxin666/dsh-client-ui-task-board | 0.1.1 | true |
-| packages/dsh-git-graph | @linxin666/dsh-client-ui-git-graph | 0.1.1 | true |
-| packages/dsh-pet | @linxin666/dsh-pet | 0.1.1 | true |
-| packages/dsh-remote-web-ui | @linxin666/dsh-remote-web-ui | 0.1.1 | true |
-| packages/dsh-live-stats | @linxin666/dsh-live-stats | 0.1.1 | true |
-| packages/dsh-ssh | @linxin666/dsh-ssh | 0.1.1 | true |
-| packages/dsh-liangshen | @linxin666/dsh-liangshen | 0.1.12 | false |
-| packages/dsh-aionui-panel | @linxin666/dsh-client-ui-aionui-panel | 0.1.1 | true |
-| packages/dsh-web-ui-settings | @linxin666/dsh-client-ui-web-ui-settings | 0.1.1 | true |
-| packages/dsh-community-plugins | @linxin666/dsh-client-ui-community-plugins | 0.1.17 | false |
-| packages/dsh-skins | @linxin666/dsh-skins（聚合） | 0.1.1 | true |
-| packages/dsh-web-ui-all | @linxin666/dsh-web-ui-all（聚合） | 0.1.1 | true |
-| packages/skins/qq98 | @linxin666/dsh-client-ui-skin-qq98 | 0.1.1 | true |
-| packages/skins/ths | @linxin666/dsh-client-ui-skin-ths | 0.1.1 | true |
-| packages/skins/xp | @linxin666/dsh-client-ui-skin-xp | 0.1.1 | true |
-| packages/skins/blue-fantasy | @linxin666/dsh-client-ui-skin-blue-fantasy | 0.1.1 | true |
-| packages/skins/dragon-heir | @linxin666/dsh-client-ui-skin-dragon-heir | 0.1.1 | true |
-| packages/skins/minecraft | @linxin666/dsh-client-ui-skin-minecraft | 0.1.1 | true |
-| packages/skins/whale-song | @linxin666/dsh-client-ui-skin-whale-song | 0.1.0 | true |
-| packages/skins/whale-mom | @linxin666/dsh-client-ui-skin-whale-mom | 0.1.0 | true |
-| packages/skins/harbor | @linxin666/dsh-client-ui-skin-harbor | 0.1.14 | true |
-| packages/skins/trading | @linxin666/dsh-client-ui-skin-trading | 0.1.2 | true |
-| packages/skins/skin-center | @linxin666/dsh-client-ui-skin-center | 0.1.1 | true |
-| packages/skins/miku | @linxin666/dsh-client-ui-skin-miku | 0.1.12 | true |
-| packages/skins/matrix | @linxin666/dsh-client-ui-skin-matrix | 0.1.0 | true |
-
-
-## 二、发布前检查结论（2026-08-11，已修复项标注 [已确认]）
+## 二、发布前检查结论
 
 ### [阻断] 阻断项（不修复无法发布/无法被消费）
 
-1. **全部 20 包 `private: true`** — npm 直接拒绝发布 private 包
-   （`This package has been marked as private`）。发布前需逐个移除。
-   **（发布前需按流程移除，当前仍保留）**
+1. **版本或公开属性漂移** — `node scripts/verify-version.mjs <tag>`会拒绝版本不匹配、不可读的`package.json`以及任何`private: true`发布根。该门禁在npm publish之前运行；当前28个发布根通过`0.1.19`校验。
 2. **聚合包 `workspace:*` 依赖原样进 tarball**（dsh-skins 7 处、dsh-web-ui-all 9 处）—
    [已确认] **已确认修复方式**：实测 `pnpm pack` 会把 `workspace:*` 改写为真实版本号
    （dsh-skins 7 处、dsh-web-ui-all 9 处全部改写为 0.1.1/0.1.0，无残留）。
@@ -93,13 +61,11 @@ npm 侧已发布 @deepseek-ai 核心 SDK 包至 `0.1.0-rc.6`，插件包仍按�
 
 ## 四、建议的发布流程（批准后执行）
 
-1. 同步官方版本号节奏（当前为 `0.1.0-rc.6`，与 @deepseek-ai/dsh 对齐）；
-2. 发布前仍需处理：移除 `private: true`（20 包）；
-3. 按依赖顺序发布（用 **`pnpm publish`**，自动改写 workspace:*）：
+1. 选择与全仓包版本一致的tag，并运行`node scripts/verify-version.mjs <tag>`；
+2. 按依赖顺序发布（用 **`pnpm publish`**，自动改写 workspace:*）：
    各功能包 > 皮肤包 > dsh-skins > web-ui-all；
-4. 逐包 `pnpm pack --dry-run` 复核 tarball 内容（注意：dry-run 仍会执行
-   prepack/prepare 脚本）；
-5. 发布动作前**必须**经维护者确认。
+3. 逐包 `pnpm pack --dry-run` 复核tarball内容（注意：dry-run仍会执行prepack/prepare脚本）；
+4. 发布动作前**必须**经维护者确认。
 
 ## 五、重新核对时机
 

@@ -466,7 +466,7 @@ describe('useSkin / currentSkin against a throwaway HOME', () => {
     writeFileSync(patch, '# custom row survives\n')
     chmodSync(patch, 0o600)
     useSkin('official', { home: h })
-    expect(statSync(patch).mode & 0o777).toBe(0o600)
+    if (process.platform !== 'win32') expect(statSync(patch).mode & 0o777).toBe(0o600)
     expect(readFileSync(patch, 'utf8')).toContain('# custom row survives')
   })
 

@@ -1,10 +1,12 @@
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { expandHome, resolveDshHome } from '../host/dsh-home.ts'
 
 describe('expandHome', () => {
   it('expands a leading tilde onto the home directory', () => {
-    const expanded = expandHome('~/x')
-    expect(expanded.endsWith('/x')).toBe(true)
+    const home = join('/', 'home', 'u')
+    const expanded = expandHome('~/x', home)
+    expect(expanded).toBe(join(home, 'x'))
     expect(expanded.startsWith('~')).toBe(false)
   })
 
@@ -16,12 +18,14 @@ describe('expandHome', () => {
 
 describe('resolveDshHome', () => {
   it('prefers the DSH_HOME environment override', () => {
-    expect(resolveDshHome({ DSH_HOME: '/custom/dsh' }, '/home/u')).toBe('/custom/dsh')
-    expect(resolveDshHome({ DSH_HOME: '~/custom' }, '/home/u')).toBe('/home/u/custom')
+    const home = join('/', 'home', 'u')
+    expect(resolveDshHome({ DSH_HOME: '/custom/dsh' }, home)).toBe('/custom/dsh')
+    expect(resolveDshHome({ DSH_HOME: '~/custom' }, home)).toBe(join(home, 'custom'))
   })
 
   it('ignores a blank override and falls back to ~/.dsh', () => {
-    expect(resolveDshHome({ DSH_HOME: '   ' }, '/home/u')).toBe('/home/u/.dsh')
-    expect(resolveDshHome({}, '/home/u')).toBe('/home/u/.dsh')
+    const home = join('/', 'home', 'u')
+    expect(resolveDshHome({ DSH_HOME: '   ' }, home)).toBe(join(home, '.dsh'))
+    expect(resolveDshHome({}, home)).toBe(join(home, '.dsh'))
   })
 })

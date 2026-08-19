@@ -50,6 +50,10 @@ html[data-dsh-taskboard-active]:not([data-dsh-ssh-active]) [class*='centerCol'] 
 
 /* --- sidebar entry row ------------------------------------------------------- */
 
+:global(html[data-dsh-workbench-task-row]) [data-dsh-taskboard-entry] {
+  display: none;
+}
+
 .entry {
   display: flex;
   align-items: center;

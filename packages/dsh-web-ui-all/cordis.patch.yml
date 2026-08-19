@@ -63,6 +63,16 @@
     - id: web-ui-liangshen
       name: '@linxin666/dsh-liangshen'
 
+# from ../dsh-workbench
+- insert:
+    - id: web-ui-workbench
+      name: '@linxin666/dsh-client-ui-workbench'
+
+# from ../dsh-gateway-retry
+- insert:
+    - id: web-ui-gateway-retry
+      name: '@linxin666/dsh-gateway-retry'
+
 # from ../skins/skin-center (via ../dsh-skins)
 - insert:
     - id: web-ui-skin-center

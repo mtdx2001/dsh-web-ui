@@ -23,11 +23,11 @@ test('copies cover the settings trio for six consumers plus host helpers', () =>
   // Normalize separators: node:path join yields backslashes on Windows, and
   // the copy-count buckets below match on forward slashes.
   const entries = copyEntries().map(entry => ({ ...entry, target: entry.target.replaceAll('\\', '/') }))
-  assert.equal(entries.length, 40)
+  assert.equal(entries.length, 41)
   const clientTrio = entries.filter(entry => entry.target.includes('/src/client/'))
   assert.equal(clientTrio.length, 18)
   const hostCopies = entries.filter(entry => entry.target.includes('/src/host/') || entry.target.includes('/src/dsh-home.ts') || entry.target.includes('/src/mount-once.ts'))
-  assert.equal(hostCopies.length, 20)
+  assert.equal(hostCopies.length, 21)
 })
 
 test('checkSync detects drift and applySync repairs it', async () => {

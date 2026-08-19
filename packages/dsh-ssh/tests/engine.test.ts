@@ -288,7 +288,7 @@ describe('tunnel', () => {
 })
 
 describe('sftp (real sshd)', () => {
-  it('uploads, lists, and downloads files', async () => {
+  it.skipIf(process.platform === 'win32')('uploads, lists, and downloads files', async () => {
     const sshd = await TestSshd.start()
     try {
       store.create({

@@ -152,8 +152,8 @@ describe('loadPetRegistry', () => {
 
 describe('codexPetsDir', () => {
   it('honors CODEX_HOME and expands a leading tilde', () => {
-    expect(codexPetsDir({ CODEX_HOME: '/opt/codex' }, '/home/user')).toBe('/opt/codex/pets')
-    expect(codexPetsDir({ CODEX_HOME: '~/codex' }, '/home/user')).toBe('/home/user/codex/pets')
-    expect(codexPetsDir({}, '/home/user')).toBe('/home/user/.codex/pets')
+    expect(codexPetsDir({ CODEX_HOME: join('/', 'opt', 'codex') }, join('/', 'home', 'user'))).toBe(join('/', 'opt', 'codex', 'pets'))
+    expect(codexPetsDir({ CODEX_HOME: '~/codex' }, join('/', 'home', 'user'))).toBe(join('/', 'home', 'user', 'codex', 'pets'))
+    expect(codexPetsDir({}, join('/', 'home', 'user'))).toBe(join('/', 'home', 'user', '.codex', 'pets'))
   })
 })

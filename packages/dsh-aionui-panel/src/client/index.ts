@@ -22,6 +22,7 @@ import { PanelApi, subscribePanelEvents } from './api.ts'
 import { PanelLayoutController } from './layout.ts'
 import { createPanelStores, layoutSetRoot } from './store.ts'
 import { mountPanels } from './mount.tsx'
+import { provideAionUiPanelService } from './dock-service.ts'
 import { NS, dictionaries, setLanguage, type AionUiPanelKey } from './locales.ts'
 import { DragFileInlay, type DragFileInjected } from './drag/DragFileInlay.tsx'
 import { insertPathIntoDraft } from './drag/file-drag.ts'
@@ -41,6 +42,7 @@ export const inject = ['sessions', 'locale']
 /** Apply the browser half. */
 export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, dictionaries), 'dsh-aionui-panel: dictionaries')
+  const dockService = provideAionUiPanelService(ctx)
 
   // The composer drop target for explorer file drags: mounted in the
   // official `conversation.input.dock` band (declared by the shipped
@@ -90,6 +92,8 @@ export function apply(ctx: ClientContext): void {
     const layout = new PanelLayoutController(stores.layout)
     const disposers: Array<() => void> = []
     let disposeEvents: (() => void) | undefined
+    let disposeDock: (() => void) | undefined
+    let disposePanels: (() => void) | undefined
     let currentRoot = ''
     let lastPreviewOpen = false
 
@@ -161,7 +165,8 @@ export function apply(ctx: ClientContext): void {
     // Mount everything. DOM failures degrade the panels, never the GUI.
     try {
       layout.mount()
-      mountPanels(stores, () => layout.toggleExplorer())
+      disposeDock = dockService.bindExplorer(stores.explorer)
+      disposePanels = mountPanels(stores, dockService, () => layout.toggleExplorer())
     } catch (error) {
       console.error('[dsh-aionui-panel] mount failed:', error)
     }
@@ -193,6 +198,8 @@ export function apply(ctx: ClientContext): void {
       document.removeEventListener('visibilitychange', onVisibilityChange)
       document.removeEventListener('click', onFileRefClick)
       disposeEvents?.()
+      disposePanels?.()
+      disposeDock?.()
       langObserver?.disconnect()
       for (const dispose of disposers) dispose()
       layout.dispose()

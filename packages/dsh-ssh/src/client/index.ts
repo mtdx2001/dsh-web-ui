@@ -20,6 +20,7 @@ import { en, zh, type SshKey } from './locales.ts'
 import { mountPanel } from './mount.tsx'
 import { PanelController } from './panel/controller.ts'
 import { mountSidebarEntry } from './sidebar-entry.ts'
+import { registerSshWorkbenchRow, type WorkbenchSidebarRowService } from './workbench-row.tsx'
 
 /** Locale namespace this plugin owns. */
 const NS = 'dsh-ssh'
@@ -54,6 +55,10 @@ export function apply(ctx: ClientContext): void {
 
   const controller = new PanelController()
   const api = new SshApi()
+  ctx.inject(['workbench'], (scope) => {
+    const service = scope.get('workbench') as WorkbenchSidebarRowService
+    return registerSshWorkbenchRow(service, controller)
+  })
   const disposers: Array<() => void> = []
   try {
     disposers.push(mountSidebarEntry(controller))

@@ -47,7 +47,10 @@ test('aggregate ids never collide with standalone package ids', () => {
       } catch {
         continue
       }
-      if (patch === 'packages/dsh-web-ui-all/cordis.patch.yml' || patch === 'packages/dsh-skins/cordis.patch.yml') continue
+      // Normalize separators: node:path join yields backslashes on Windows and
+      // the aggregate skip-list below is written with forward slashes.
+      const patchNorm = patch.replaceAll('\\', '/')
+      if (patchNorm === 'packages/dsh-web-ui-all/cordis.patch.yml' || patchNorm === 'packages/dsh-skins/cordis.patch.yml') continue
       standalonePatches.push(patch)
     }
   }
