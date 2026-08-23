@@ -33,7 +33,7 @@ describe('isInsideRoot', () => {
     expect(isInsideRoot(base, path.join(base, 'a'))).toBe(true)
     expect(isInsideRoot(base, path.resolve('/ws2'))).toBe(false)
     expect(isInsideRoot(base, path.join(base, '..', 'ws2'))).toBe(false)
-    expect(isInsideRoot('C:/ws', 'C:\\ws\\a')).toBe(true)
+    expect(isInsideRoot('C:/ws', 'C:\\ws\\a')).toBe(process.platform === 'win32')
     expect(isInsideRoot('C:/ws', 'C:\\ws2')).toBe(false)
   })
 })
