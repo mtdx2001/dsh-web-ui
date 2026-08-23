@@ -12,18 +12,28 @@ permissions:
   contents: read
   id-token: write
 
+concurrency:
+  group: publish-workbench-${{ inputs.version }}
+  cancel-in-progress: false
+
 jobs:
   publish:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
+    env:
+      VERSION: ${{ inputs.version }}
+      RELEASE_DIR: release-assets/workbench-${{ inputs.version }}
 
     steps:
       - name: Checkout source
         uses: actions/checkout@v5
 
+      - name: Lint GitHub Actions workflows
+        uses: docker://rhysd/actionlint:latest
+
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
         with:
           version: 11.21.0
 
@@ -31,8 +41,6 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: 24
-          registry-url: https://registry.npmjs.org
-          cache: pnpm
 
       - name: Use OIDC-capable npm
         run: npm install --global npm@11.15.0
@@ -41,19 +49,29 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "${{ inputs.version }}" = "0.1.20"
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          test "$VERSION" = "0.1.20"
           for manifest in \
             packages/dsh-workbench/package.json \
             packages/dsh-balance-rows/package.json \
             packages/dsh-workbench-suite/package.json
           do
-            test "$(node -p "require('./$manifest').version")" = "${{ inputs.version }}"
+            test "$(node -p "require('./$manifest').version")" = "$VERSION"
             test "$(node -p "require('./$manifest').dsh.engines.dsh")" = ">=0.1.1-rc.1"
             test "$(node -p "require('./$manifest').dsh.bundle.patch")" = "./cordis.patch.yml"
           done
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Install dependencies without lifecycle scripts
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Validate release tooling
+        run: |
+          node --test scripts/workbench-release.test.mjs
+          node --test scripts/aggregate.test.mjs
+          pnpm aggregate:check
+          pnpm runtime-deps:check
+          pnpm sync-shared:check
+          pnpm docs:check
 
       - name: Validate Workbench
         run: |
@@ -68,65 +86,49 @@ jobs:
           pnpm --filter @mtdx2001/dsh-client-ui-balance-rows build
           pnpm --filter @mtdx2001/dsh-workbench-suite build
 
-      - name: Pack release artifacts
+      - name: Pack immutable release artifacts
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p release-assets/workbench-0.1.20
-          pnpm --filter @mtdx2001/dsh-client-ui-workbench pack --pack-destination "$GITHUB_WORKSPACE/release-assets/workbench-0.1.20"
-          pnpm --filter @mtdx2001/dsh-client-ui-balance-rows pack --pack-destination "$GITHUB_WORKSPACE/release-assets/workbench-0.1.20"
-          pnpm --filter @mtdx2001/dsh-workbench-suite pack --pack-destination "$GITHUB_WORKSPACE/release-assets/workbench-0.1.20"
+          mkdir -p "$RELEASE_DIR"
+          pnpm --filter @mtdx2001/dsh-client-ui-workbench pack --pack-destination "$GITHUB_WORKSPACE/$RELEASE_DIR"
+          pnpm --filter @mtdx2001/dsh-client-ui-balance-rows pack --pack-destination "$GITHUB_WORKSPACE/$RELEASE_DIR"
+          pnpm --filter @mtdx2001/dsh-workbench-suite pack --pack-destination "$GITHUB_WORKSPACE/$RELEASE_DIR"
 
-      - name: Audit packed manifests
+      - name: Audit artifacts and plan registry changes
+        run: |
+          node scripts/workbench-release.mjs audit "$RELEASE_DIR" "$VERSION"
+          node scripts/workbench-release.mjs plan "$RELEASE_DIR" "$VERSION"
+
+      - name: Publish or resume through npm Trusted Publishing
+        run: node scripts/workbench-release.mjs publish "$RELEASE_DIR" "$VERSION"
+
+      - name: Verify registry consumer installation
         shell: bash
         run: |
           set -euo pipefail
-          node <<'NODE'
-          const { execFileSync } = require('node:child_process')
-          const { mkdtempSync, readFileSync } = require('node:fs')
-          const { tmpdir } = require('node:os')
+          smoke="$(mktemp -d)"
+          printf '{"name":"workbench-registry-smoke","private":true,"version":"1.0.0"}\n' > "$smoke/package.json"
+          npm install --prefix "$smoke" --ignore-scripts --registry=https://registry.npmjs.org/ \
+            "@mtdx2001/dsh-workbench-suite@$VERSION"
+          node - "$smoke" "$VERSION" <<'NODE'
+          const { readFileSync } = require('node:fs')
           const { join } = require('node:path')
-          const root = 'release-assets/workbench-0.1.20'
-          const expected = new Map([
-            ['@mtdx2001/dsh-client-ui-workbench', 'mtdx2001-dsh-client-ui-workbench-0.1.20.tgz'],
-            ['@mtdx2001/dsh-client-ui-balance-rows', 'mtdx2001-dsh-client-ui-balance-rows-0.1.20.tgz'],
-            ['@mtdx2001/dsh-workbench-suite', 'mtdx2001-dsh-workbench-suite-0.1.20.tgz'],
-          ])
-          for (const [name, file] of expected) {
-            const dir = mkdtempSync(join(tmpdir(), 'workbench-pack-'))
-            execFileSync('tar', ['-xf', join(root, file), '-C', dir])
-            const manifest = JSON.parse(readFileSync(join(dir, 'package', 'package.json'), 'utf8'))
-            if (manifest.name !== name || manifest.version !== '0.1.20') throw new Error(`unexpected manifest in ${file}`)
-            if (manifest.dsh?.engines?.dsh !== '>=0.1.1-rc.1') throw new Error(`missing dsh engine in ${file}`)
-            if (name === '@mtdx2001/dsh-workbench-suite') {
-              const deps = manifest.dependencies
-              const wanted = {
-                '@mtdx2001/dsh-client-ui-workbench': '0.1.20',
-                '@mtdx2001/dsh-client-ui-balance-rows': '0.1.20',
-                '@linxin666/dsh-client-ui-aionui-panel': '0.1.19',
-                '@linxin666/dsh-client-ui-task-board': '0.1.19',
-                '@linxin666/dsh-ssh': '0.1.19',
-              }
-              if (JSON.stringify(deps) !== JSON.stringify(wanted)) throw new Error('unexpected Suite dependencies')
+          const root = process.argv[2]
+          const version = process.argv[3]
+          const expected = {
+            '@mtdx2001/dsh-client-ui-workbench': version,
+            '@mtdx2001/dsh-client-ui-balance-rows': version,
+            '@mtdx2001/dsh-workbench-suite': version,
+            '@linxin666/dsh-client-ui-aionui-panel': '0.1.19',
+            '@linxin666/dsh-client-ui-task-board': '0.1.19',
+            '@linxin666/dsh-ssh': '0.1.19',
+          }
+          for (const [name, wanted] of Object.entries(expected)) {
+            const manifest = JSON.parse(readFileSync(join(root, 'node_modules', name, 'package.json'), 'utf8'))
+            if (manifest.version !== wanted) throw new Error(`${name}: expected ${wanted}, received ${manifest.version}`)
+            if (manifest.dsh?.bundle?.patch && !require('node:fs').existsSync(join(root, 'node_modules', name, manifest.dsh.bundle.patch))) {
+              throw new Error(`${name}: bundle patch is missing`)
             }
           }
           NODE
-          if grep -RIE '(npm_[A-Za-z0-9]{20,}|gh[pousr]_[A-Za-z0-9]{20,}|_authToken[[:space:]]*=|BEGIN [A-Z ]*PRIVATE KEY)' release-assets/workbench-0.1.20; then
-            echo 'Sensitive material found in release artifacts' >&2
-            exit 1
-          fi
-
-      - name: Publish Workbench
-        run: npm publish release-assets/workbench-0.1.20/mtdx2001-dsh-client-ui-workbench-0.1.20.tgz --access public --provenance --registry=https://registry.npmjs.org/
-
-      - name: Publish Balance Rows
-        run: npm publish release-assets/workbench-0.1.20/mtdx2001-dsh-client-ui-balance-rows-0.1.20.tgz --access public --provenance --registry=https://registry.npmjs.org/
-
-      - name: Publish Suite
-        run: npm publish release-assets/workbench-0.1.20/mtdx2001-dsh-workbench-suite-0.1.20.tgz --access public --provenance --registry=https://registry.npmjs.org/
-
-      - name: Verify registry versions
-        run: |
-          npm view @mtdx2001/dsh-client-ui-workbench@0.1.20 version --registry=https://registry.npmjs.org/
-          npm view @mtdx2001/dsh-client-ui-balance-rows@0.1.20 version --registry=https://registry.npmjs.org/
-          npm view @mtdx2001/dsh-workbench-suite@0.1.20 version --registry=https://registry.npmjs.org/
