@@ -1,0 +1,53 @@
+name: Publish Workbench stage30
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/workbench-stage30-trusted-publish'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout release assets
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: Use OIDC-capable npm
+        run: npm install --global npm@11.11.0
+
+      - name: Verify audited tarballs
+        shell: bash
+        run: |
+          cd release-assets/workbench-stage30
+          echo 'BF74476B5449B14F76CF9919D132140C992D742E5A0ABA5C12BD399159C39E04  mtdx2001-dsh-client-ui-workbench-0.1.19.tgz' | sha256sum --check --strict
+          echo 'BB7188D035A0ECBE682ECA6E4DACB1B63A8349D4EC90D3E483B97E36770D0905  mtdx2001-dsh-client-ui-balance-rows-0.1.19.tgz' | sha256sum --check --strict
+          echo 'D2ED31F26AF201958DAE44FA66F3509FB884D1BCB850DE0CE3FB3BD7E2B11C5E  mtdx2001-dsh-workbench-suite-0.1.19.tgz' | sha256sum --check --strict
+
+      - name: Publish Workbench
+        run: npm publish release-assets/workbench-stage30/mtdx2001-dsh-client-ui-workbench-0.1.19.tgz --access public --provenance --registry=https://registry.npmjs.org/
+
+      - name: Verify Workbench
+        run: npm view @mtdx2001/dsh-client-ui-workbench@0.1.19 version --registry=https://registry.npmjs.org/
+
+      - name: Publish Balance Rows
+        run: npm publish release-assets/workbench-stage30/mtdx2001-dsh-client-ui-balance-rows-0.1.19.tgz --access public --provenance --registry=https://registry.npmjs.org/
+
+      - name: Verify Balance Rows
+        run: npm view @mtdx2001/dsh-client-ui-balance-rows@0.1.19 version --registry=https://registry.npmjs.org/
+
+      - name: Publish Suite
+        run: npm publish release-assets/workbench-stage30/mtdx2001-dsh-workbench-suite-0.1.19.tgz --access public --provenance --registry=https://registry.npmjs.org/
+
+      - name: Verify Suite
+        run: npm view @mtdx2001/dsh-workbench-suite@0.1.19 version --registry=https://registry.npmjs.org/
