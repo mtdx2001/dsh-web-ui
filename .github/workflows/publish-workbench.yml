@@ -10,17 +10,15 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 concurrency:
   group: publish-workbench-${{ inputs.version }}
   cancel-in-progress: false
 
 jobs:
-  publish:
-    if: github.ref == 'refs/heads/main'
+  build:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 40
     env:
       VERSION: ${{ inputs.version }}
       RELEASE_DIR: release-assets/workbench-${{ inputs.version }}
@@ -42,7 +40,7 @@ jobs:
         with:
           node-version: 24
 
-      - name: Use OIDC-capable npm
+      - name: Use supported npm
         run: npm install --global npm@11.15.0
 
       - name: Verify requested version
@@ -100,19 +98,68 @@ jobs:
           node scripts/workbench-release.mjs audit "$RELEASE_DIR" "$VERSION"
           node scripts/workbench-release.mjs plan "$RELEASE_DIR" "$VERSION"
 
+      - name: Stage audited publication artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p publish-input/release-assets
+          cp "$RELEASE_DIR"/*.tgz publish-input/release-assets/
+          cp scripts/workbench-release.mjs publish-input/
+
+      - name: Upload audited publication artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: workbench-${{ inputs.version }}-${{ github.sha }}
+          path: publish-input
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      VERSION: ${{ inputs.version }}
+      RELEASE_DIR: publish-input/release-assets
+
+    steps:
+      - name: Download audited publication artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: workbench-${{ inputs.version }}-${{ github.sha }}
+          path: publish-input
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+
+      - name: Use OIDC-capable npm
+        run: npm install --global npm@11.15.0
+
+      - name: Reaudit immutable artifacts
+        run: |
+          node publish-input/workbench-release.mjs audit "$RELEASE_DIR" "$VERSION"
+          node publish-input/workbench-release.mjs plan "$RELEASE_DIR" "$VERSION"
+
       - name: Publish or resume through npm Trusted Publishing
-        run: node scripts/workbench-release.mjs publish "$RELEASE_DIR" "$VERSION"
+        run: node publish-input/workbench-release.mjs publish "$RELEASE_DIR" "$VERSION"
 
       - name: Verify registry consumer installation
         shell: bash
         run: |
           set -euo pipefail
           smoke="$(mktemp -d)"
+          cache="$(mktemp -d)"
           printf '{"name":"workbench-registry-smoke","private":true,"version":"1.0.0"}\n' > "$smoke/package.json"
-          npm install --prefix "$smoke" --ignore-scripts --registry=https://registry.npmjs.org/ \
-            "@mtdx2001/dsh-workbench-suite@$VERSION"
+          npm install --prefix "$smoke" --cache "$cache" --prefer-online --ignore-scripts \
+            --registry=https://registry.npmjs.org/ "@mtdx2001/dsh-workbench-suite@$VERSION"
           node - "$smoke" "$VERSION" <<'NODE'
-          const { readFileSync } = require('node:fs')
+          const { existsSync, readFileSync } = require('node:fs')
           const { join } = require('node:path')
           const root = process.argv[2]
           const version = process.argv[3]
@@ -127,7 +174,7 @@ jobs:
           for (const [name, wanted] of Object.entries(expected)) {
             const manifest = JSON.parse(readFileSync(join(root, 'node_modules', name, 'package.json'), 'utf8'))
             if (manifest.version !== wanted) throw new Error(`${name}: expected ${wanted}, received ${manifest.version}`)
-            if (manifest.dsh?.bundle?.patch && !require('node:fs').existsSync(join(root, 'node_modules', name, manifest.dsh.bundle.patch))) {
+            if (manifest.dsh?.bundle?.patch && !existsSync(join(root, 'node_modules', name, manifest.dsh.bundle.patch))) {
               throw new Error(`${name}: bundle patch is missing`)
             }
           }
