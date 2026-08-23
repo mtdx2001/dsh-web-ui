@@ -5,8 +5,8 @@
  * files are the contract — scripts/aggregate.mjs --check enforces drift
  * separately.
  */
-import { readdirSync, readFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
@@ -23,7 +23,20 @@ function idsOf(relPath) {
     .map((line) => line.trim().replace(/^- id: /, ''))
 }
 
-const AGGREGATES = ['packages/dsh-web-ui-all/cordis.patch.yml', 'packages/dsh-skins/cordis.patch.yml']
+function aggregatePatches() {
+  const patches = []
+  for (const base of ['packages', 'packages/skins']) {
+    for (const entry of readdirSync(join(ROOT, base), { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue
+      const dir = join(ROOT, base, entry.name)
+      if (!existsSync(join(dir, 'aggregate.yml'))) continue
+      patches.push(relative(ROOT, join(dir, 'cordis.patch.yml')).replaceAll('\\', '/'))
+    }
+  }
+  return patches.sort()
+}
+
+const AGGREGATES = aggregatePatches()
 
 test('aggregate rows are web-ui-* namespaced and unique', () => {
   for (const rel of AGGREGATES) {
@@ -49,8 +62,9 @@ test('aggregate ids never collide with standalone package ids', () => {
       } catch {
         continue
       }
-      if (patch === 'packages/dsh-web-ui-all/cordis.patch.yml' || patch === 'packages/dsh-skins/cordis.patch.yml') continue
-      standalonePatches.push(patch)
+      const normalized = patch.replaceAll('\\', '/')
+      if (AGGREGATES.includes(normalized)) continue
+      standalonePatches.push(normalized)
     }
   }
   assert.ok(standalonePatches.length > 10, 'expected to scan the standalone packages')

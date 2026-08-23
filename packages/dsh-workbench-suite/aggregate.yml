@@ -1,0 +1,13 @@
+# Workbench distribution manifest. Child package identities remain unchanged so
+# upstream ownership is preserved. Wallpaper is supplied separately.
+patchFrom:
+  - ../dsh-workbench
+  - ../dsh-balance-rows
+  - ../dsh-aionui-panel
+  - ../dsh-task-board
+  - ../dsh-ssh
+# Only project-owned packages follow the workspace release version. The three
+# upstream integrations stay pinned to the versions validated by RC1.1.
+deps:
+  - ../dsh-workbench
+  - ../dsh-balance-rows

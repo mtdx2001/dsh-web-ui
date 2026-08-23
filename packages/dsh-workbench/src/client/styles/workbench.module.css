@@ -1,0 +1,280 @@
+/**
+ * Workbench styles. Colors ride the shell's --dsw-* theme tokens (with plain
+ * fallbacks); surfaces injected into the AionUI explorer prefer its --aion-*
+ * tokens so the tab matches the dock it lives in. Flat sections with 1px
+ * separators — no nested cards, no gradients.
+ */
+
+/* --- status bar (prepended into the conversation center column) ----------- */
+
+.statusBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 26px;
+  max-width: min(52vw, 720px);
+  padding: 0 4px;
+  flex-shrink: 1;
+  box-sizing: border-box;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary, #454d5f);
+  font-size: 12px;
+  font-family: var(--dsw-font-family, -apple-system, "system-ui", "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.statusLeft {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.statusProject {
+  color: var(--dsw-alias-label-primary, #1d2129);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.statusSession {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.statusSep {
+  color: var(--dsw-alias-label-tertiary, #86909c);
+  flex-shrink: 0;
+}
+
+.statusRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.statusAction {
+  display: inline-grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  padding: 0;
+  color: var(--dsw-alias-label-secondary, #454d5f);
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.statusAction:hover { background: var(--dsw-alias-interactive-bg-hover, #f2f3f5); }
+.statusAction:focus-visible { outline: 2px solid var(--dsw-alias-state-business-primary, #165dff); outline-offset: -2px; }
+
+.statusPreset {
+  color: var(--dsw-alias-label-tertiary, #86909c);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.statusDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--dsw-alias-label-tertiary, #86909c);
+}
+
+.dotRunning {
+  background: var(--dsw-alias-state-success-primary, #00b42a);
+}
+
+.dotAttention {
+  background: var(--dsw-alias-state-warn-primary, #ff7d00);
+}
+
+/* --- overview tab injected into the AionUI explorer dock ------------------ */
+
+.dockTab {
+  height: 28px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--aion-text-secondary, var(--dsw-alias-label-secondary, #454d5f));
+  font-size: 13px;
+  font-family: var(--aion-font-sans, var(--dsw-font-family, sans-serif));
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.dockTab:hover {
+  background: var(--aion-fill-2, var(--dsw-alias-interactive-bg-hover, #f2f3f5));
+}
+
+.dockTab:focus-visible {
+  outline: 2px solid var(--aion-primary, var(--dsw-alias-state-business-primary, #165dff));
+  outline-offset: 2px;
+}
+
+.dockTabActive {
+  height: 28px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 2px;
+  font-size: 13px;
+  font-family: var(--aion-font-sans, var(--dsw-font-family, sans-serif));
+  cursor: pointer;
+  white-space: nowrap;
+  background: var(--aion-bg-2, var(--dsw-alias-interactive-bg-hover, #f2f3f5));
+  color: var(--aion-text-primary, var(--dsw-alias-label-primary, #1d2129));
+  font-weight: 500;
+}
+
+/* While the Overview tab is active, the native explorer tab contents (every
+   sibling of the tab bar except our own panel) hide; they stay mounted and
+   stateful. */
+:global(.aionui-root[data-dsh-workbench-overview] > *:not(:first-child):not([data-dsh-workbench-overview-panel])) {
+  display: none !important;
+}
+
+/* --- overview panel -------------------------------------------------------- */
+
+.overviewPanel {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--aion-bg-1, var(--dsw-alias-bg-layer-2, #f9fafb));
+  color: var(--aion-text-primary, var(--dsw-alias-label-primary, #1d2129));
+  font-size: 12px;
+  font-family: var(--aion-font-sans, var(--dsw-font-family, sans-serif));
+}
+
+.section {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--aion-bg-3, var(--dsw-alias-border-l1, #e5e6eb));
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  color: var(--aion-text-tertiary, var(--dsw-alias-label-tertiary, #86909c));
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.sectionHeader svg {
+  flex-shrink: 0;
+}
+
+.row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 2px 0;
+  min-width: 0;
+}
+
+.rowLabel {
+  color: var(--aion-text-tertiary, var(--dsw-alias-label-tertiary, #86909c));
+  flex-shrink: 0;
+}
+
+.rowValue {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.rowValueWrap {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.rowMeta {
+  color: var(--aion-text-tertiary, var(--dsw-alias-label-tertiary, #86909c));
+  flex-shrink: 0;
+  margin-left: auto;
+  padding-left: 8px;
+}
+
+.muted {
+  color: var(--aion-text-tertiary, var(--dsw-alias-label-tertiary, #86909c));
+}
+
+.mono {
+  font-family: var(--aion-font-mono, ui-monospace, "SF Mono", Menlo, Consolas, monospace);
+  font-size: 11px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: 2px;
+  font-size: 11px;
+  line-height: 18px;
+  flex-shrink: 0;
+  background: var(--aion-fill-2, var(--dsw-alias-interactive-bg-hover, #f2f3f5));
+  color: var(--aion-text-secondary, var(--dsw-alias-label-secondary, #454d5f));
+}
+
+.badgeRunning {
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: 2px;
+  font-size: 11px;
+  line-height: 18px;
+  flex-shrink: 0;
+  background: var(--aion-fill-2, var(--dsw-alias-interactive-bg-hover, #f2f3f5));
+  color: var(--aion-success, var(--dsw-alias-state-success-primary, #00b42a));
+}
+
+.badgeError {
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: 2px;
+  font-size: 11px;
+  line-height: 18px;
+  flex-shrink: 0;
+  background: var(--aion-fill-2, var(--dsw-alias-interactive-bg-hover, #f2f3f5));
+  color: var(--aion-danger, var(--dsw-alias-state-error-primary, #f53f3f));
+}
+
+.badgeWarn {
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: 2px;
+  font-size: 11px;
+  line-height: 18px;
+  flex-shrink: 0;
+  background: var(--aion-fill-2, var(--dsw-alias-interactive-bg-hover, #f2f3f5));
+  color: var(--aion-warning, var(--dsw-alias-state-warn-primary, #ff7d00));
+}
+
+.progressTrack {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--aion-fill-2, var(--dsw-alias-interactive-bg-hover, #f2f3f5));
+  overflow: hidden;
+  margin: 4px 0 2px;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--aion-primary, var(--dsw-alias-state-business-primary, #165dff));
+}

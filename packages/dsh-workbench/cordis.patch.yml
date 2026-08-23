@@ -1,0 +1,12 @@
+# bundle patch for the dsh-workbench plugin: inserts its plugin row into the web
+# profile roster. Applied as a profile bundle layer (the `dsh.bundle.patch`
+# manifest field); install with
+# `dsh plugin --profile web add link:<repo>/packages/dsh-workbench`.
+#
+# The row is a bare plugin by package name: the node half (exports ".") only
+# announces the plugin through a system-prompt section, and the `dsh.client`
+# declaration in package.json makes the browser half (exports "./client",
+# served at /plugins/ui-workbench/client.js) load in the web GUI.
+- insert:
+    - id: ui-workbench
+      name: '@mtdx2001/dsh-client-ui-workbench'

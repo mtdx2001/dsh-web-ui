@@ -1,0 +1,148 @@
+.host {
+  container-name: workbench-main-surface;
+  container-type: inline-size;
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-base);
+}
+
+.header {
+  display: flex;
+  height: 32px;
+  min-height: 32px;
+  align-items: stretch;
+  border-bottom: 1px solid var(--dsw-alias-border-l2);
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+.tabs {
+  display: flex;
+  min-width: 0;
+  align-items: stretch;
+  overflow: hidden;
+}
+
+.tab {
+  position: relative;
+  display: inline-flex;
+  min-width: 48px;
+  max-width: 144px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 12px;
+  border: 0;
+  color: var(--dsw-alias-label-secondary);
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.tab:hover {
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-layer-2);
+}
+
+.tab[data-active="true"] {
+  color: var(--dsw-alias-label-primary);
+}
+
+.tab[data-active="true"]::after {
+  position: absolute;
+  right: 10px;
+  bottom: 0;
+  left: 10px;
+  height: 2px;
+  background: var(--dsw-alias-state-business-primary);
+  content: "";
+}
+
+.tab > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tab > svg,
+.agentIcon,
+.extensionIcon {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+.agentIcon,
+.extensionIcon {
+  display: grid;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.content {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.agent,
+.extension {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.agent:not([data-active="true"]) {
+  position: absolute;
+  inset: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.extension {
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  background: var(--dsw-alias-bg-base);
+}
+
+.unavailable {
+  display: grid;
+  height: 100%;
+  place-items: center;
+  padding: 24px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 13px;
+}
+
+@container workbench-main-surface (max-width: 480px) {
+  .tab {
+    width: 36px;
+    min-width: 36px;
+    padding: 0;
+  }
+
+  .tab > span:last-child {
+    display: none;
+  }
+
+  .tab[data-active="true"]::after {
+    right: 7px;
+    left: 7px;
+  }
+}

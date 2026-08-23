@@ -1,0 +1,38 @@
+{
+  "name": "@mtdx2001/dsh-workbench-suite",
+  "description": "DSH Workbench distribution bundle with project-owned Workbench and Provider-driven Balance Rows plus source-preserving AionUI, Task Board, and SSH integrations.",
+  "version": "0.1.20",
+  "type": "module",
+  "dsh": {
+    "engines": {
+      "dsh": ">=0.1.1-rc.1"
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "scripts": {
+    "build": "node ../../scripts/aggregate.mjs --check",
+    "prepare": "node ../../scripts/aggregate.mjs --check"
+  },
+  "license": "Apache-2.0",
+  "files": [
+    "cordis.patch.yml",
+    "README.md",
+    "README.zh.md",
+    "README.i18n.yaml",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mtdx2001/dsh-web-ui.git",
+    "directory": "packages/dsh-workbench-suite"
+  },
+  "dependencies": {
+    "@mtdx2001/dsh-client-ui-workbench": "workspace:*",
+    "@mtdx2001/dsh-client-ui-balance-rows": "workspace:*",
+    "@linxin666/dsh-client-ui-aionui-panel": "0.1.19",
+    "@linxin666/dsh-client-ui-task-board": "0.1.19",
+    "@linxin666/dsh-ssh": "0.1.19"
+  }
+}

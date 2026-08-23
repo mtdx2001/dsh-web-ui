@@ -1,0 +1,131 @@
+/* Files tab: single-column tree + read-only preview. Workbench owns
+   scrolling; this module styles rows, toolbar, and local states only. */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--dsh-border, rgba(128, 128, 128, 0.25));
+  flex: none;
+}
+
+.search {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 12px;
+  padding: 3px 6px;
+  border: 1px solid var(--dsh-border, rgba(128, 128, 128, 0.25));
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+}
+
+.tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  flex: none;
+}
+
+.tool:hover {
+  background: var(--dsh-hover, rgba(128, 128, 128, 0.15));
+}
+
+.tree {
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  padding: 3px 8px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.row:hover {
+  background: var(--dsh-hover, rgba(128, 128, 128, 0.15));
+}
+
+.rowName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chevronSpacer {
+  width: 12px;
+  flex: none;
+}
+
+.status {
+  flex: none;
+  font-size: 10px;
+  font-family: ui-monospace, monospace;
+  opacity: 0.75;
+}
+
+.state {
+  padding: 16px 8px;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.notice {
+  padding: 6px 8px;
+  color: var(--dsw-alias-label-secondary, #61666b);
+  background: var(--dsw-alias-bg-layer-2, rgba(128, 128, 128, 0.08));
+  border-bottom: 1px solid var(--dsw-alias-border-l2, rgba(128, 128, 128, 0.25));
+  font-size: 12px;
+}
+
+.breadcrumb {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-family: ui-monospace, monospace;
+}
+
+.crumb {
+  opacity: 0.85;
+}
+
+.preview {
+  margin: 0;
+  padding: 8px;
+  overflow: auto;
+  min-height: 0;
+  font-size: 12px;
+  font-family: ui-monospace, monospace;
+  white-space: pre-wrap;
+  word-break: break-all;
+}

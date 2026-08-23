@@ -1,0 +1,193 @@
+/* Changes tab: grouped rows + bounded diff view. Workbench owns scrolling;
+   this module styles rows, actions, and local states only. */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--dsh-border, rgba(128, 128, 128, 0.25));
+  flex: none;
+}
+
+.branch {
+  flex: 1;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-family: ui-monospace, monospace;
+  opacity: 0.85;
+}
+
+.tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  flex: none;
+}
+
+.tool:hover {
+  background: var(--dsh-hover, rgba(128, 128, 128, 0.15));
+}
+
+.list {
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.group {
+  padding-bottom: 4px;
+}
+
+.groupTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 8px 8px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0;
+  opacity: 0.7;
+}
+
+.count {
+  font-family: ui-monospace, monospace;
+  font-weight: 400;
+  opacity: 0.8;
+}
+
+.rowWrap {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-right: 4px;
+}
+
+.rowWrap:hover {
+  background: var(--dsh-hover, rgba(128, 128, 128, 0.15));
+}
+
+.row {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  padding: 3px 8px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.rowName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badge {
+  flex: none;
+  font-size: 10px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  color: var(--dsw-alias-label-warning, #a15c07);
+  background: var(--dsw-alias-bg-warning, rgba(204, 132, 0, 0.12));
+}
+
+.actions {
+  flex: none;
+  display: inline-flex;
+  gap: 2px;
+}
+
+.action,
+.actionDanger {
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 11px;
+  padding: 2px 6px;
+  cursor: pointer;
+  opacity: 0.85;
+}
+
+.action:hover,
+.actionDanger:hover {
+  background: var(--dsh-hover, rgba(128, 128, 128, 0.2));
+  opacity: 1;
+}
+
+.actionDanger {
+  color: var(--dsw-alias-label-danger, #b3261e);
+}
+
+.action:disabled,
+.actionDanger:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.state {
+  padding: 16px 8px;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.notice {
+  padding: 6px 8px;
+  color: var(--dsw-alias-label-secondary, #61666b);
+  background: var(--dsw-alias-bg-layer-2, rgba(128, 128, 128, 0.08));
+  border-bottom: 1px solid var(--dsw-alias-border-l2, rgba(128, 128, 128, 0.25));
+  font-size: 12px;
+  flex: none;
+}
+
+.diffPath {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-family: ui-monospace, monospace;
+}
+
+.diff {
+  margin: 0;
+  padding: 8px;
+  overflow: auto;
+  min-height: 0;
+  font-size: 12px;
+  font-family: ui-monospace, monospace;
+  white-space: pre-wrap;
+  word-break: break-all;
+}

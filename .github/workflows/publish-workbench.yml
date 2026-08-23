@@ -1,7 +1,12 @@
-name: Publish Workbench stage30
+name: Publish Workbench
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: Exact Workbench release version
+        required: true
+        default: 0.1.20
 
 permissions:
   contents: read
@@ -9,45 +14,119 @@ permissions:
 
 jobs:
   publish:
-    if: github.ref == 'refs/heads/workbench-stage30-trusted-publish'
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
-      - name: Checkout release assets
+      - name: Checkout source
         uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
+          cache: pnpm
 
       - name: Use OIDC-capable npm
-        run: npm install --global npm@11.11.0
+        run: npm install --global npm@11.15.0
 
-      - name: Verify audited tarballs
+      - name: Verify requested version
         shell: bash
         run: |
-          cd release-assets/workbench-stage30
-          echo 'BF74476B5449B14F76CF9919D132140C992D742E5A0ABA5C12BD399159C39E04  mtdx2001-dsh-client-ui-workbench-0.1.19.tgz' | sha256sum --check --strict
-          echo 'BB7188D035A0ECBE682ECA6E4DACB1B63A8349D4EC90D3E483B97E36770D0905  mtdx2001-dsh-client-ui-balance-rows-0.1.19.tgz' | sha256sum --check --strict
-          echo 'D2ED31F26AF201958DAE44FA66F3509FB884D1BCB850DE0CE3FB3BD7E2B11C5E  mtdx2001-dsh-workbench-suite-0.1.19.tgz' | sha256sum --check --strict
+          set -euo pipefail
+          test "${{ inputs.version }}" = "0.1.20"
+          for manifest in \
+            packages/dsh-workbench/package.json \
+            packages/dsh-balance-rows/package.json \
+            packages/dsh-workbench-suite/package.json
+          do
+            test "$(node -p "require('./$manifest').version")" = "${{ inputs.version }}"
+            test "$(node -p "require('./$manifest').dsh.engines.dsh")" = ">=0.1.1-rc.1"
+            test "$(node -p "require('./$manifest').dsh.bundle.patch")" = "./cordis.patch.yml"
+          done
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate Workbench
+        run: |
+          pnpm --filter @mtdx2001/dsh-client-ui-workbench typecheck
+          pnpm --filter @mtdx2001/dsh-client-ui-workbench test
+          pnpm --filter @mtdx2001/dsh-client-ui-workbench build
+
+      - name: Validate Balance Rows and Suite
+        run: |
+          pnpm --filter @mtdx2001/dsh-client-ui-balance-rows typecheck
+          pnpm --filter @mtdx2001/dsh-client-ui-balance-rows test
+          pnpm --filter @mtdx2001/dsh-client-ui-balance-rows build
+          pnpm --filter @mtdx2001/dsh-workbench-suite build
+
+      - name: Pack release artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-assets/workbench-0.1.20
+          pnpm --filter @mtdx2001/dsh-client-ui-workbench pack --pack-destination "$GITHUB_WORKSPACE/release-assets/workbench-0.1.20"
+          pnpm --filter @mtdx2001/dsh-client-ui-balance-rows pack --pack-destination "$GITHUB_WORKSPACE/release-assets/workbench-0.1.20"
+          pnpm --filter @mtdx2001/dsh-workbench-suite pack --pack-destination "$GITHUB_WORKSPACE/release-assets/workbench-0.1.20"
+
+      - name: Audit packed manifests
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const { execFileSync } = require('node:child_process')
+          const { mkdtempSync, readFileSync } = require('node:fs')
+          const { tmpdir } = require('node:os')
+          const { join } = require('node:path')
+          const root = 'release-assets/workbench-0.1.20'
+          const expected = new Map([
+            ['@mtdx2001/dsh-client-ui-workbench', 'mtdx2001-dsh-client-ui-workbench-0.1.20.tgz'],
+            ['@mtdx2001/dsh-client-ui-balance-rows', 'mtdx2001-dsh-client-ui-balance-rows-0.1.20.tgz'],
+            ['@mtdx2001/dsh-workbench-suite', 'mtdx2001-dsh-workbench-suite-0.1.20.tgz'],
+          ])
+          for (const [name, file] of expected) {
+            const dir = mkdtempSync(join(tmpdir(), 'workbench-pack-'))
+            execFileSync('tar', ['-xf', join(root, file), '-C', dir])
+            const manifest = JSON.parse(readFileSync(join(dir, 'package', 'package.json'), 'utf8'))
+            if (manifest.name !== name || manifest.version !== '0.1.20') throw new Error(`unexpected manifest in ${file}`)
+            if (manifest.dsh?.engines?.dsh !== '>=0.1.1-rc.1') throw new Error(`missing dsh engine in ${file}`)
+            if (name === '@mtdx2001/dsh-workbench-suite') {
+              const deps = manifest.dependencies
+              const wanted = {
+                '@mtdx2001/dsh-client-ui-workbench': '0.1.20',
+                '@mtdx2001/dsh-client-ui-balance-rows': '0.1.20',
+                '@linxin666/dsh-client-ui-aionui-panel': '0.1.19',
+                '@linxin666/dsh-client-ui-task-board': '0.1.19',
+                '@linxin666/dsh-ssh': '0.1.19',
+              }
+              if (JSON.stringify(deps) !== JSON.stringify(wanted)) throw new Error('unexpected Suite dependencies')
+            }
+          }
+          NODE
+          if grep -RIE '(npm_[A-Za-z0-9]{20,}|gh[pousr]_[A-Za-z0-9]{20,}|_authToken[[:space:]]*=|BEGIN [A-Z ]*PRIVATE KEY)' release-assets/workbench-0.1.20; then
+            echo 'Sensitive material found in release artifacts' >&2
+            exit 1
+          fi
 
       - name: Publish Workbench
-        run: npm publish release-assets/workbench-stage30/mtdx2001-dsh-client-ui-workbench-0.1.19.tgz --access public --provenance --registry=https://registry.npmjs.org/
-
-      - name: Verify Workbench
-        run: npm view @mtdx2001/dsh-client-ui-workbench@0.1.19 version --registry=https://registry.npmjs.org/
+        run: npm publish release-assets/workbench-0.1.20/mtdx2001-dsh-client-ui-workbench-0.1.20.tgz --access public --provenance --registry=https://registry.npmjs.org/
 
       - name: Publish Balance Rows
-        run: npm publish release-assets/workbench-stage30/mtdx2001-dsh-client-ui-balance-rows-0.1.19.tgz --access public --provenance --registry=https://registry.npmjs.org/
-
-      - name: Verify Balance Rows
-        run: npm view @mtdx2001/dsh-client-ui-balance-rows@0.1.19 version --registry=https://registry.npmjs.org/
+        run: npm publish release-assets/workbench-0.1.20/mtdx2001-dsh-client-ui-balance-rows-0.1.20.tgz --access public --provenance --registry=https://registry.npmjs.org/
 
       - name: Publish Suite
-        run: npm publish release-assets/workbench-stage30/mtdx2001-dsh-workbench-suite-0.1.19.tgz --access public --provenance --registry=https://registry.npmjs.org/
+        run: npm publish release-assets/workbench-0.1.20/mtdx2001-dsh-workbench-suite-0.1.20.tgz --access public --provenance --registry=https://registry.npmjs.org/
 
-      - name: Verify Suite
-        run: npm view @mtdx2001/dsh-workbench-suite@0.1.19 version --registry=https://registry.npmjs.org/
+      - name: Verify registry versions
+        run: |
+          npm view @mtdx2001/dsh-client-ui-workbench@0.1.20 version --registry=https://registry.npmjs.org/
+          npm view @mtdx2001/dsh-client-ui-balance-rows@0.1.20 version --registry=https://registry.npmjs.org/
+          npm view @mtdx2001/dsh-workbench-suite@0.1.20 version --registry=https://registry.npmjs.org/
