@@ -377,5 +377,16 @@
     "descriptionEn": "A floating pet exclusively for Miku: hand-drawn frame animations, 5s random idle with a pity timer, a continuous work loop earning coins, a shop restoring hunger, stat bars and a two-level hover menu; coexists with the built-in dsh-pet under the /miku-pet namespace.",
     "repo": "https://github.com/stushansusu/miku-pet",
     "category": "ui"
+  },
+  {
+    "id": "dsh-workbench-suite",
+    "name": "DSH 执行工作台套装",
+    "nameEn": "DSH Workbench Suite",
+    "author": "mtdx2001",
+    "description": "一键安装执行工作台、Provider 驱动余额行、AionUI 右侧面板、任务看板与 SSH 集成；保留各组件的配置、凭据和数据所有权。",
+    "descriptionEn": "One install for the execution workbench, Provider-driven balance rows, AionUI right panel, Task Board and SSH integrations, while preserving each component's configuration, credential and data ownership.",
+    "repo": "https://github.com/mtdx2001/dsh-web-ui",
+    "npm": "@mtdx2001/dsh-workbench-suite",
+    "category": "ui"
   }
 ]
