@@ -14,19 +14,19 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - 名称: 检出发布资产
-        使用: actions/checkout@v5
+      - name: Checkout release assets
+        uses: actions/checkout@v5
 
-      - 名称: 设置 Node.js
-        使用: actions/setup-node@v5
-        使用:
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
           node-version: 24
-注册表地址: https://registry.npmjs.org
+          registry-url: https://registry.npmjs.org
 
-      - 使用支持 OIDC 的 npm
-运行: npm install --global npm@11.11.0
+      - name: Use OIDC-capable npm
+        run: npm install --global npm@11.11.0
 
-      - 名称: 验证已审计的 tarball
+      - name: Verify audited tarballs
         shell: bash
         run: |
           cd release-assets/workbench-stage30
@@ -34,20 +34,20 @@ jobs:
           echo 'BB7188D035A0ECBE682ECA6E4DACB1B63A8349D4EC90D3E483B97E36770D0905  mtdx2001-dsh-client-ui-balance-rows-0.1.19.tgz' | sha256sum --check --strict
           echo 'D2ED31F26AF201958DAE44FA66F3509FB884D1BCB850DE0CE3FB3BD7E2B11C5E  mtdx2001-dsh-workbench-suite-0.1.19.tgz' | sha256sum --check --strict
 
-      - name: 发布工作台
-        运行: npm publish release-assets/workbench-stage30/mtdx2001-dsh-client-ui-workbench-0.1.19.tgz --access public --provenance --registry=https://registry.npmjs.org/
+      - name: Publish Workbench
+        run: npm publish release-assets/workbench-stage30/mtdx2001-dsh-client-ui-workbench-0.1.19.tgz --access public --provenance --registry=https://registry.npmjs.org/
 
-      - 名称: 验证工作台
-        运行: npm view @mtdx2001/dsh-client-ui-workbench@0.1.19 version --registry=https://registry.npmjs.org/
+      - name: Verify Workbench
+        run: npm view @mtdx2001/dsh-client-ui-workbench@0.1.19 version --registry=https://registry.npmjs.org/
 
-      - 名称: 发布余额行
-        运行: npm publish release-assets/workbench-stage30/mtdx2001-dsh-client-ui-balance-rows-0.1.19.tgz --access public --provenance --registry=https://registry.npmjs.org/
+      - name: Publish Balance Rows
+        run: npm publish release-assets/workbench-stage30/mtdx2001-dsh-client-ui-balance-rows-0.1.19.tgz --access public --provenance --registry=https://registry.npmjs.org/
 
-      - 名称: 验证余额行
-运行: npm view @mtdx2001/dsh-client-ui-balance-rows@0.1.19 version --registry=https://registry.npmjs.org/
+      - name: Verify Balance Rows
+        run: npm view @mtdx2001/dsh-client-ui-balance-rows@0.1.19 version --registry=https://registry.npmjs.org/
 
-      - 名称: Publish Suite
-        运行: npm publish release-assets/workbench-stage30/mtdx2001-dsh-workbench-suite-0.1.19.tgz --access public --provenance --registry=https://registry.npmjs.org/
+      - name: Publish Suite
+        run: npm publish release-assets/workbench-stage30/mtdx2001-dsh-workbench-suite-0.1.19.tgz --access public --provenance --registry=https://registry.npmjs.org/
 
-      - 名称: 验证套件
-        运行: npm view @mtdx2001/dsh-workbench-suite@0.1.19 version --registry=https://registry.npmjs.org/
+      - name: Verify Suite
+        run: npm view @mtdx2001/dsh-workbench-suite@0.1.19 version --registry=https://registry.npmjs.org/
