@@ -431,6 +431,18 @@
       "repo": "https://github.com/GreenLv/dsh-session-insights",
       "npm": "dsh-session-insights",
       "category": "tools"
+    },
+    {
+      "id": "dsh-workbench",
+      "name": "DSH 工作台",
+      "rank": 38,
+      "nameEn": "DSH Workbench",
+      "author": "mtdx2001",
+      "description": "DSH Web GUI 执行工作台：中央工作模式、模块导航、会话状态、Agent 回退、主工作区扩展与 Workbench-owned 右侧面板。",
+      "descriptionEn": "An execution workbench for the DSH Web GUI with central modes, modular navigation, session status, Agent fallback, main-surface extensions, and a Workbench-owned right sidebar.",
+      "repo": "https://github.com/mtdx2001/dsh-web-ui",
+      "npm": "@mtdx2001/dsh-client-ui-workbench",
+      "category": "tools"
     }
   ]
 }
